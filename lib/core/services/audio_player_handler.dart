@@ -1,13 +1,24 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:music_tech/core/utils/helper.dart';
 
 class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
   final AudioPlayer _audioPlayer = AudioPlayer();
 
+  AudioPlayer get audioPlayer => _audioPlayer;
+
   AudioPlayerHandler() {
     _audioPlayer.playerStateStream.listen(_broadcastState);
     _audioPlayer.positionStream.listen((position) {
-      playbackState.add(playbackState.value.copyWith(updatePosition: position));
+      playbackState.add(playbackState.value.copyWith(
+        updatePosition: position,
+      ));
+    });
+
+    _audioPlayer.durationStream.listen((duration) {
+      if (duration != null) {
+        mediaItem.add(mediaItem.value?.copyWith(duration: duration));
+      }
     });
   }
 
@@ -35,6 +46,7 @@ class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
         ProcessingState.completed: AudioProcessingState.completed,
       }[playerState.processingState]!,
       playing: isPlaying,
+      updatePosition: _audioPlayer.position,
     ));
   }
 
@@ -53,17 +65,28 @@ class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> customAction(String name, [Map<String, dynamic>? extras]) async {
-    if (name == 'loadMedia') {
-      final url = extras!['url'] as String;
-      await _audioPlayer.setUrl(url);
-      final duration = _audioPlayer.duration;
-      mediaItem.add(MediaItem(
-        id: url,
-        album: extras['album'] ?? "Unknown Album",
-        title: extras['title'] ?? "Unknown Title",
-        artist: extras['artist'] ?? "Unknown Artist",
-        duration: duration,
-      ));
+    try {
+      if (name == 'loadMedia') {
+        final url = extras?['url'] ?? "";
+
+        await _audioPlayer.setUrl(url);
+
+        final duration = _audioPlayer.duration;
+        Uri? artUri = extras?['thumbnail'] != null
+            ? Uri.parse(extras!['thumbnail'])
+            : null;
+
+        mediaItem.add(MediaItem(
+          id: url,
+          album: extras?['album'] ?? "Unknown Album",
+          title: extras?['title'] ?? "Unknown Title",
+          artist: extras?['artist'] ?? "Unknown Artist",
+          duration: duration,
+          artUri: artUri,
+        ));
+      }
+    } catch (e) {
+      Helper.showCustomSnackBar("Unknown error on Music Action");
     }
   }
 }

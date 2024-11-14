@@ -25,8 +25,30 @@ class ApiService {
       final dataList = data.map((ele) => SearchModel.fromMap(ele)).toList();
       return dataList;
     } catch (e) {
-      print(e);
       return [];
+    }
+  }
+
+  Future<List<SearchModel>> getPlayListById(String id) async {
+    try {
+      var url = '/playlist/$id';
+      final Response response = await _dio.get(url);
+      final List<dynamic> data = response.data['data'];
+      final dataList = data.map((ele) => SearchModel.fromMap(ele)).toList();
+      return dataList;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<SearchModel?> getArtistById(String artistId) async {
+    try {
+      var url = '/artist/$artistId';
+      final Response response = await _dio.get(url);
+      final data = response.data['data'];
+      return SearchModel.fromMap(data);
+    } catch (e) {
+      return null;
     }
   }
 }

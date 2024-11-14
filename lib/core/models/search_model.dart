@@ -4,21 +4,39 @@ class SearchModel {
   final String type;
   final String? videoId;
   final String? artistId;
+  final String? albumId;
+  final String? playlistId;
   final String name;
   final Artist? artist;
   final Album? album;
   final int? duration;
+  final int? year;
   final List<Thumbnail> thumbnails;
+  final List<SearchModel> topSongs;
+  final List<SearchModel> topAlbums;
+  final List<SearchModel> topSingles;
+  final List<SearchModel> topVideos;
+  final List<SearchModel> featuredOn;
+  final List<SearchModel> similarArtists;
 
   SearchModel({
     required this.type,
     required this.videoId,
     required this.artistId,
+    required this.albumId,
+    required this.playlistId,
     required this.name,
     required this.artist,
     required this.album,
     this.duration,
-    required this.thumbnails,
+    this.year,
+    this.thumbnails = const [],
+    this.topSongs = const [],
+    this.topAlbums = const [],
+    this.topSingles = const [],
+    this.topVideos = const [],
+    this.featuredOn = const [],
+    this.similarArtists = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -26,11 +44,20 @@ class SearchModel {
       'type': type,
       'videoId': videoId,
       'artistId': artistId,
+      'albumId': albumId,
+      'playlistId': playlistId,
       'name': name,
       'artist': artist?.toMap(),
       'album': album?.toMap(),
       'duration': duration,
+      'year': year,
       'thumbnails': thumbnails.map((x) => x.toMap()).toList(),
+      'topSongs': topSongs.map((x) => x.toMap()).toList(),
+      'topAlbums': topAlbums.map((x) => x.toMap()).toList(),
+      'topSingles': topSingles.map((x) => x.toMap()).toList(),
+      'topVideos': topVideos.map((x) => x.toMap()).toList(),
+      'featuredOn': featuredOn.map((x) => x.toMap()).toList(),
+      'similarArtists': similarArtists.map((x) => x.toMap()).toList(),
     };
   }
 
@@ -39,12 +66,39 @@ class SearchModel {
       type: map['type'],
       videoId: map['videoId'],
       artistId: map['artistId'],
+      albumId: map['albumId'],
+      playlistId: map['playlistId'],
       name: map['name'],
       artist: map['artist'] != null ? Artist.fromMap(map['artist']) : null,
       album: map['album'] != null ? Album.fromMap(map['album']) : null,
       duration: map['duration'],
+      year: map['year'],
       thumbnails: (map["thumbnails"] as List<dynamic>?)
               ?.map((ele) => Thumbnail.fromMap(ele as Map<String, dynamic>))
+              .toList() ??
+          [],
+      topSongs: (map["topSongs"] as List<dynamic>?)
+              ?.map((ele) => SearchModel.fromMap(ele as Map<String, dynamic>))
+              .toList() ??
+          [],
+      topAlbums: (map["topAlbums"] as List<dynamic>?)
+              ?.map((ele) => SearchModel.fromMap(ele as Map<String, dynamic>))
+              .toList() ??
+          [],
+      topSingles: (map["topSingles"] as List<dynamic>?)
+              ?.map((ele) => SearchModel.fromMap(ele as Map<String, dynamic>))
+              .toList() ??
+          [],
+      topVideos: (map["topVideos"] as List<dynamic>?)
+              ?.map((ele) => SearchModel.fromMap(ele as Map<String, dynamic>))
+              .toList() ??
+          [],
+      featuredOn: (map["featuredOn"] as List<dynamic>?)
+              ?.map((ele) => SearchModel.fromMap(ele as Map<String, dynamic>))
+              .toList() ??
+          [],
+      similarArtists: (map["similarArtists"] as List<dynamic>?)
+              ?.map((ele) => SearchModel.fromMap(ele as Map<String, dynamic>))
               .toList() ??
           [],
     );

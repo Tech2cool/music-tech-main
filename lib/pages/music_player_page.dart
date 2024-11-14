@@ -1,7 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:music_tech/core/models/search_model.dart';
+import 'package:music_tech/core/provider/audio_service_provider.dart';
+import 'package:music_tech/core/utils/helper.dart';
+import 'package:provider/provider.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 
 class MusicPlayerPage extends StatefulWidget {
   final SearchModel music;
@@ -14,103 +18,66 @@ class MusicPlayerPage extends StatefulWidget {
 
 class _MusicPlayerPageState extends State<MusicPlayerPage> {
   final YoutubeExplode _yt = YoutubeExplode();
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  bool _isPlaying = false;
   bool isLoading = false;
-  String _title = '';
-  String _thumbnailUrl = '';
-  Duration _duration = Duration.zero;
-  Duration _position = Duration.zero;
-  bool _isLooping = false;
+  late SearchModel music;
 
   @override
   void initState() {
     super.initState();
-    _playAudioFromYouTube(widget.music.videoId ?? "");
-
-    // Listen for changes in playback position
-    _audioPlayer.positionStream.listen((position) {
-      setState(() {
-        _position = position;
-      });
-    });
-
-    // Listen for changes in audio duration
-    _audioPlayer.durationStream.listen((duration) {
-      if (duration != null) {
-        setState(() {
-          _duration = duration;
-        });
-      }
-    });
+    music = widget.music;
+    _playAudioFromYouTube(music.videoId ?? "");
   }
 
   Future<void> _playAudioFromYouTube(String videoId) async {
     try {
+      final audioServiceProvider = Provider.of<AudioServiceProvider>(
+        context,
+        listen: false,
+      );
+
+      // Check if the audio is already playing
+      if (audioServiceProvider.currentMedia?.videoId == videoId) {
+        // If the audio is already playing, just resume or toggle play/pause
+        await audioServiceProvider.audioHandler.play();
+        return;
+      }
+
       setState(() {
-        _isPlaying = true;
         isLoading = true;
       });
-      // var video = await _yt.videos.get(videoId);
+
       var manifest = await _yt.videos.streamsClient.getManifest(videoId);
       var audioStreamInfo = manifest.audioOnly.withHighestBitrate();
 
-      // Set audio URL and play
-      await _audioPlayer.setUrl(audioStreamInfo.url.toString());
-      _audioPlayer.play();
-
-      setState(() {
-        _title = widget.music.name;
-        isLoading = false;
-        _thumbnailUrl = (widget.music.thumbnails.length > 1
-                ? widget.music.thumbnails[1]?.url
-                : widget.music.thumbnails[0]?.url) ??
-            '';
-      });
+      await audioServiceProvider.loadAndPlay(
+        audioStreamInfo.url.toString(),
+        music.name,
+        music.artist?.name ?? 'Unknown Artist',
+        music.album?.name ?? 'Unknown Album',
+        music.thumbnails.isNotEmpty ? music.thumbnails[0].url : null,
+        music,
+      );
     } catch (e) {
+      Helper.showCustomSnackBar("Error Loading Music");
+    } finally {
       setState(() {
-        _isPlaying = false;
         isLoading = false;
-
-        print("Error: $e");
       });
     }
   }
 
   @override
   void dispose() {
-    _audioPlayer.dispose();
+    // _audioPlayer.dispose();
     _yt.close();
     super.dispose();
   }
 
-  // Toggle play/pause
-  void _togglePlayPause() {
-    if (_isPlaying) {
-      _audioPlayer.pause();
-    } else {
-      _audioPlayer.play();
-    }
-    setState(() {
-      _isPlaying = !_isPlaying;
-    });
-  }
-
-  // Toggle loop/repeat
-  void _toggleLoop() {
-    setState(() {
-      _isLooping = !_isLooping;
-    });
-    _audioPlayer.setLoopMode(_isLooping ? LoopMode.one : LoopMode.off);
-  }
-
-  // Seek to a position in the audio
-  void _seekTo(Duration position) {
-    _audioPlayer.seek(position);
-  }
-
   @override
   Widget build(BuildContext context) {
+    final audioServiceProvider = Provider.of<AudioServiceProvider>(context);
+    final playlist = audioServiceProvider.playlist;
+
     return Stack(
       children: [
         Scaffold(
@@ -121,14 +88,26 @@ class _MusicPlayerPageState extends State<MusicPlayerPage> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                if (_thumbnailUrl.isNotEmpty)
-                  Image.network(
-                    _thumbnailUrl,
-                    height: 200,
+                if (music.thumbnails.isNotEmpty) ...[
+                  CarouselSlider.builder(
+                    itemCount: music.thumbnails.length,
+                    options: CarouselOptions(),
+                    itemBuilder: (
+                      BuildContext context,
+                      int itemIndex,
+                      int pageViewIndex,
+                    ) {
+                      final thumbnail = music.thumbnails[itemIndex];
+                      return CachedNetworkImage(
+                        imageUrl: thumbnail.url ?? "",
+                        // height: 200,
+                      );
+                    },
                   ),
+                ],
                 const SizedBox(height: 16),
                 Text(
-                  widget.music.name,
+                  music.name,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 18,
@@ -136,7 +115,7 @@ class _MusicPlayerPageState extends State<MusicPlayerPage> {
                   ),
                 ),
                 Text(
-                  "Artist: ${widget.music.artist?.name ?? "NA"}",
+                  "Artist: ${music.artist?.name ?? "NA"}",
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 18,
@@ -144,7 +123,7 @@ class _MusicPlayerPageState extends State<MusicPlayerPage> {
                   ),
                 ),
                 Text(
-                  "Album: ${widget.music.album?.name ?? "NA"}",
+                  "Album: ${music.album?.name ?? "NA"}",
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 18,
@@ -152,66 +131,131 @@ class _MusicPlayerPageState extends State<MusicPlayerPage> {
                   ),
                 ),
                 const Spacer(),
-                Slider(
-                  value: _position.inSeconds.toDouble(),
-                  min: 0.0,
-                  max: _duration.inSeconds.toDouble(),
-                  onChanged: (value) {
-                    _seekTo(Duration(seconds: value.toInt()));
+                StreamBuilder<Duration?>(
+                  stream: audioServiceProvider.durationStream,
+                  builder: (context, durationSnapshot) {
+                    final duration = durationSnapshot.data ?? Duration.zero;
+
+                    return StreamBuilder<Duration>(
+                      stream: audioServiceProvider.positionStream,
+                      builder: (context, positionSnapshot) {
+                        final position = positionSnapshot.data ?? Duration.zero;
+
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Slider(
+                              value: position.inSeconds.toDouble(),
+                              min: 0.0,
+                              max: duration.inSeconds.toDouble(),
+                              onChanged: (value) {
+                                audioServiceProvider.audioHandler
+                                    .seek(Duration(seconds: value.toInt()));
+                              },
+                            ),
+                            Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 20.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(_formatDuration(position)),
+                                  Text(_formatDuration(duration)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    );
                   },
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(_formatDuration(_position)),
-                      Text(_formatDuration(_duration)),
-                    ],
-                  ),
                 ),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
                       icon: Icon(
-                        Icons.loop,
-                        color: _isLooping ? Colors.orange : Colors.grey,
+                        Icons.skip_previous_rounded,
+                        color: audioServiceProvider.currentIndex >= 1
+                            ? Colors.orange
+                            : Colors.grey,
+                        size: 30,
                       ),
-                      onPressed: _toggleLoop,
+                      onPressed: () {
+                        if (audioServiceProvider.currentIndex <= 1) return;
+                        setState(() {
+                          music =
+                              playlist[audioServiceProvider.currentIndex - 1];
+                        });
+                        _playAudioFromYouTube(
+                          playlist[audioServiceProvider.currentIndex - 1]
+                              .videoId!,
+                        );
+                        audioServiceProvider.updateCurrentIndex(
+                          audioServiceProvider.currentIndex - 1,
+                        );
+                      },
+                    ),
+                    StreamBuilder<bool>(
+                      stream: audioServiceProvider.isPlaying,
+                      builder: (context, snapshot) {
+                        final isPlaying = snapshot.data ?? false;
+                        return IconButton(
+                          icon: Icon(
+                            isPlaying
+                                ? Icons.pause_circle_filled
+                                : Icons.play_circle_filled,
+                            size: 64,
+                          ),
+                          onPressed: audioServiceProvider.playPause,
+                        );
+                      },
                     ),
                     IconButton(
                       icon: Icon(
-                        _isPlaying
-                            ? Icons.pause_circle_filled
-                            : Icons.play_circle_filled,
-                        size: 64,
+                        Icons.skip_next_rounded,
+                        color: audioServiceProvider.currentIndex <
+                                audioServiceProvider.playlist.length
+                            ? Colors.orange
+                            : Colors.grey,
+                        size: 30,
                       ),
-                      onPressed: _togglePlayPause,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.stop),
                       onPressed: () {
-                        _audioPlayer.stop();
+                        if (audioServiceProvider.currentIndex >=
+                            playlist.length) return;
                         setState(() {
-                          _isPlaying = false;
-                          _position = Duration.zero;
+                          music =
+                              playlist[audioServiceProvider.currentIndex + 1];
                         });
+
+                        _playAudioFromYouTube(
+                          playlist[audioServiceProvider.currentIndex + 1]
+                              .videoId!,
+                        );
+                        audioServiceProvider.updateCurrentIndex(
+                          audioServiceProvider.currentIndex + 1,
+                        );
                       },
                     ),
+                    // IconButton(
+                    //   icon: const Icon(Icons.stop),
+                    //   onPressed: audioServiceProvider.stop,
+                    // ),
                   ],
                 ),
               ],
             ),
           ),
         ),
-        if (isLoading)
+        if (isLoading) ...[
           Container(
             color: Colors.black.withOpacity(0.3),
             child: const Center(
               child: CircularProgressIndicator(),
             ),
           )
+        ],
       ],
     );
   }

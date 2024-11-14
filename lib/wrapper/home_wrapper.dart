@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:music_tech/components/mini_player.dart';
 import 'package:music_tech/pages/home_page.dart';
 import 'package:music_tech/pages/my_playlist_page.dart';
 import 'package:music_tech/pages/search_page.dart';
@@ -39,6 +40,7 @@ class _HomeWrapperState extends State<HomeWrapper> {
       ),
     ),
   ];
+
   final screens = const [
     HomePage(),
     SearchPage(),
@@ -62,7 +64,23 @@ class _HomeWrapperState extends State<HomeWrapper> {
         showSelectedLabels: true,
         items: _items,
       ),
-      body: screens[selectedIndex],
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: selectedIndex,
+            children: screens,
+          ),
+          Positioned(
+            left: 0,
+            bottom: 0,
+            child: SizedBox(
+              width: MediaQuery.sizeOf(context).width,
+              height: 70,
+              child: const MiniPlayer(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
