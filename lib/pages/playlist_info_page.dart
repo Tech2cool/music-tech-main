@@ -164,6 +164,7 @@ class _PlayListInfoPageState extends State<PlayListInfoPage> {
                             MaterialPageRoute(
                               builder: (context) => MusicPlayerPage(
                                 music: song,
+                                index: index,
                               ),
                             ),
                           );

@@ -9,8 +9,13 @@ import 'package:carousel_slider/carousel_slider.dart';
 
 class MusicPlayerPage extends StatefulWidget {
   final SearchModel music;
+  final int index;
 
-  const MusicPlayerPage({super.key, required this.music});
+  const MusicPlayerPage({
+    super.key,
+    required this.music,
+    this.index = 0,
+  });
 
   @override
   State<MusicPlayerPage> createState() => _MusicPlayerPageState();
