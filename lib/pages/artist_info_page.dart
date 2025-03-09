@@ -76,7 +76,7 @@ class _ArtistInfoPageState extends State<ArtistInfoPage> {
                 ],
                 const SizedBox(height: 16),
                 Text(
-                  widget.music.name,
+                  widget.music.name ?? "NA",
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 18,
@@ -179,7 +179,7 @@ class TopSongsTab extends StatelessWidget {
                     horizontal: 15,
                   ),
                   title: Text(
-                    song.name,
+                    song.name ?? "NA",
                     maxLines: 2,
                     style: const TextStyle(
                       fontSize: 12,
@@ -216,6 +216,15 @@ class TopSongsTab extends StatelessWidget {
                           ),
                         ),
                       );
+                    } else if (song.type == "ARTIST") {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ArtistInfoPage(
+                            music: song,
+                          ),
+                        ),
+                      );
                     } else if (song.type == "ALBUM") {
                       Navigator.push(
                         context,
@@ -226,6 +235,9 @@ class TopSongsTab extends StatelessWidget {
                         ),
                       );
                     } else {
+                      audioServiceProvider.playlist = artistInfo.topSongs;
+                      audioServiceProvider.currentIndex = index;
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -277,7 +289,7 @@ class TopAlbumsTab extends StatelessWidget {
                     horizontal: 15,
                   ),
                   title: Text(
-                    song.name,
+                    song.name ?? "NA",
                     maxLines: 2,
                     style: const TextStyle(
                       fontSize: 12,
@@ -376,7 +388,7 @@ class TopMix extends StatelessWidget {
                     horizontal: 15,
                   ),
                   title: Text(
-                    song.name,
+                    song.name ?? "NA",
                     maxLines: 2,
                     style: const TextStyle(
                       fontSize: 12,
@@ -474,7 +486,7 @@ class FeaturedTab extends StatelessWidget {
                     horizontal: 15,
                   ),
                   title: Text(
-                    song.name,
+                    song.name ?? "NA",
                     maxLines: 2,
                     style: const TextStyle(
                       fontSize: 12,
@@ -572,7 +584,7 @@ class SimilarArtistTab extends StatelessWidget {
                     horizontal: 15,
                   ),
                   title: Text(
-                    song.name,
+                    song.name ?? "NA",
                     maxLines: 2,
                     style: const TextStyle(
                       fontSize: 12,

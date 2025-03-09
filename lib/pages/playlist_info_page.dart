@@ -3,6 +3,8 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:music_tech/core/models/search_model.dart';
 import 'package:music_tech/core/provider/audio_service_provider.dart';
+import 'package:music_tech/pages/album_info_page.dart';
+import 'package:music_tech/pages/artist_info_page.dart';
 import 'package:music_tech/pages/music_player_page.dart';
 import 'package:provider/provider.dart';
 
@@ -75,7 +77,7 @@ class _PlayListInfoPageState extends State<PlayListInfoPage> {
               ],
               const SizedBox(height: 16),
               Text(
-                widget.music.name,
+                widget.music.name ?? "NA",
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 18,
@@ -121,7 +123,7 @@ class _PlayListInfoPageState extends State<PlayListInfoPage> {
                         horizontal: 15,
                       ),
                       title: Text(
-                        song.name,
+                        song.name ?? "NA",
                         maxLines: 2,
                         style: const TextStyle(
                           fontSize: 12,
@@ -158,13 +160,33 @@ class _PlayListInfoPageState extends State<PlayListInfoPage> {
                               ),
                             ),
                           );
+                        } else if (song.type == "ARTIST") {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ArtistInfoPage(
+                                music: song,
+                              ),
+                            ),
+                          );
+                        } else if (song.type == "ALBUM") {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AlbumInfoPage(
+                                music: song,
+                              ),
+                            ),
+                          );
                         } else {
+                          audioServiceProvider.playlist = playlist;
+                          audioServiceProvider.currentIndex = index;
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => MusicPlayerPage(
                                 music: song,
-                                index: index,
                               ),
                             ),
                           );

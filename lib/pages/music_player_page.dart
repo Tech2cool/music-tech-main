@@ -23,13 +23,19 @@ class MusicPlayerPage extends StatefulWidget {
 
 class _MusicPlayerPageState extends State<MusicPlayerPage> {
   final YoutubeExplode _yt = YoutubeExplode();
-  bool isLoading = false;
-  late SearchModel music;
+  // bool isLoading = false;
+  // late SearchModel music;
 
   @override
   void initState() {
     super.initState();
-    music = widget.music;
+    final audioServiceProvider = Provider.of<AudioServiceProvider>(
+      context,
+      listen: false,
+    );
+
+    audioServiceProvider.currentMusic = widget.music;
+    final music = audioServiceProvider.currentMusic ?? widget.music;
     _playAudioFromYouTube(music.videoId ?? "");
   }
 
@@ -40,35 +46,48 @@ class _MusicPlayerPageState extends State<MusicPlayerPage> {
         listen: false,
       );
 
-      // Check if the audio is already playing
-      if (audioServiceProvider.currentMedia?.videoId == videoId) {
-        // If the audio is already playing, just resume or toggle play/pause
-        await audioServiceProvider.audioHandler.play();
-        return;
-      }
+      // setState(() {
+      //   isLoading = true;
+      // });
+      final music = audioServiceProvider.currentMusic ?? widget.music;
 
-      setState(() {
-        isLoading = true;
-      });
-
-      var manifest = await _yt.videos.streamsClient.getManifest(videoId);
-      var audioStreamInfo = manifest.audioOnly.withHighestBitrate();
-
-      await audioServiceProvider.loadAndPlay(
-        audioStreamInfo.url.toString(),
-        music.name,
-        music.artist?.name ?? 'Unknown Artist',
-        music.album?.name ?? 'Unknown Album',
-        music.thumbnails.isNotEmpty ? music.thumbnails[0].url : null,
-        music,
-      );
+      await audioServiceProvider.playAudioFromYouTube(videoId, music);
     } catch (e) {
-      Helper.showCustomSnackBar("Error Loading Music");
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+      //
     }
+    // setState(() {
+    //   isLoading = false;
+    // });
+
+    //   // Check if the audio is already playing
+    //   if (audioServiceProvider.currentMedia?.videoId == videoId) {
+    //     // If the audio is already playing, just resume or toggle play/pause
+    //     await audioServiceProvider.audioHandler.play();
+    //     return;
+    //   }
+
+    //   setState(() {
+    //     isLoading = true;
+    //   });
+
+    //   var manifest = await _yt.videos.streamsClient.getManifest(videoId);
+    //   var audioStreamInfo = manifest.audioOnly.withHighestBitrate();
+
+    //   await audioServiceProvider.loadAndPlay(
+    //     audioStreamInfo.url.toString(),
+    //     music.name ?? "NA",
+    //     music.artist?.name ?? 'Unknown Artist',
+    //     music.album?.name ?? 'Unknown Album',
+    //     music.thumbnails.isNotEmpty ? music.thumbnails[0].url : null,
+    //     music,
+    //   );
+    // } catch (e) {
+    //   Helper.showCustomSnackBar("Error Loading Music");
+    // } finally {
+    //   setState(() {
+    //     isLoading = false;
+    //   });
+    // }
   }
 
   @override
@@ -82,6 +101,8 @@ class _MusicPlayerPageState extends State<MusicPlayerPage> {
   Widget build(BuildContext context) {
     final audioServiceProvider = Provider.of<AudioServiceProvider>(context);
     final playlist = audioServiceProvider.playlist;
+    final music = audioServiceProvider.currentMusic ?? widget.music;
+    final isLoading = audioServiceProvider.isLoading;
 
     return Stack(
       children: [
@@ -112,7 +133,7 @@ class _MusicPlayerPageState extends State<MusicPlayerPage> {
                 ],
                 const SizedBox(height: 16),
                 Text(
-                  music.name,
+                  music.name ?? "NA",
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 18,
@@ -179,29 +200,35 @@ class _MusicPlayerPageState extends State<MusicPlayerPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    //skip prev
                     IconButton(
                       icon: Icon(
                         Icons.skip_previous_rounded,
                         color: audioServiceProvider.currentIndex >= 1
-                            ? Colors.orange
-                            : Colors.grey,
+                            ? Colors.white
+                            : Colors.grey.shade600,
                         size: 30,
                       ),
-                      onPressed: () {
-                        if (audioServiceProvider.currentIndex <= 1) return;
-                        setState(() {
-                          music =
-                              playlist[audioServiceProvider.currentIndex - 1];
-                        });
-                        _playAudioFromYouTube(
-                          playlist[audioServiceProvider.currentIndex - 1]
-                              .videoId!,
-                        );
-                        audioServiceProvider.updateCurrentIndex(
-                          audioServiceProvider.currentIndex - 1,
-                        );
-                      },
+                      onPressed: audioServiceProvider.onTapPrev,
+                      // onPressed: () {
+                      //   if (audioServiceProvider.currentIndex <= 0) return;
+                      //   // setState(() {
+                      //   //   music =
+                      //   //       playlist[audioServiceProvider.currentIndex - 1];
+                      //   // });
+                      //   audioServiceProvider.updateCurrentMusic(
+                      //       playlist[audioServiceProvider.currentIndex - 1]);
+
+                      //   _playAudioFromYouTube(
+                      //     playlist[audioServiceProvider.currentIndex - 1]
+                      //         .videoId!,
+                      //   );
+                      //   audioServiceProvider.updateCurrentIndex(
+                      //     audioServiceProvider.currentIndex - 1,
+                      //   );
+                      // },
                     ),
+                    // play/pause
                     StreamBuilder<bool>(
                       stream: audioServiceProvider.isPlaying,
                       builder: (context, snapshot) {
@@ -217,31 +244,38 @@ class _MusicPlayerPageState extends State<MusicPlayerPage> {
                         );
                       },
                     ),
+                    //skip next
                     IconButton(
                       icon: Icon(
                         Icons.skip_next_rounded,
                         color: audioServiceProvider.currentIndex <
                                 audioServiceProvider.playlist.length
-                            ? Colors.orange
-                            : Colors.grey,
+                            ? Colors.white
+                            : Colors.grey.shade600,
                         size: 30,
                       ),
-                      onPressed: () {
-                        if (audioServiceProvider.currentIndex >=
-                            playlist.length) return;
-                        setState(() {
-                          music =
-                              playlist[audioServiceProvider.currentIndex + 1];
-                        });
+                      onPressed: audioServiceProvider.onTapNext,
+                      // onPressed: () {
+                      //   if (audioServiceProvider.currentIndex >=
+                      //       playlist.length) {
+                      //     // Helper.showCustomSnackBar("no next song");
+                      //     return;
+                      //   }
+                      //   audioServiceProvider.updateCurrentMusic(
+                      //       playlist[audioServiceProvider.currentIndex + 1]);
+                      //   // setState(() {
+                      //   //   music =
+                      //   //       playlist[audioServiceProvider.currentIndex + 1];
+                      //   // });
 
-                        _playAudioFromYouTube(
-                          playlist[audioServiceProvider.currentIndex + 1]
-                              .videoId!,
-                        );
-                        audioServiceProvider.updateCurrentIndex(
-                          audioServiceProvider.currentIndex + 1,
-                        );
-                      },
+                      //   _playAudioFromYouTube(
+                      //     playlist[audioServiceProvider.currentIndex + 1]
+                      //         .videoId!,
+                      //   );
+                      //   audioServiceProvider.updateCurrentIndex(
+                      //     audioServiceProvider.currentIndex + 1,
+                      //   );
+                      // },
                     ),
                     // IconButton(
                     //   icon: const Icon(Icons.stop),

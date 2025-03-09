@@ -1,13 +1,15 @@
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:music_tech/core/provider/audio_service_provider.dart';
 import 'package:music_tech/core/utils/helper.dart';
 
 class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
   final AudioPlayer _audioPlayer = AudioPlayer();
+  final AudioServiceProvider audioServiceProvider;
 
   AudioPlayer get audioPlayer => _audioPlayer;
 
-  AudioPlayerHandler() {
+  AudioPlayerHandler(this.audioServiceProvider) {
     _audioPlayer.playerStateStream.listen(_broadcastState);
     _audioPlayer.positionStream.listen((position) {
       playbackState.add(playbackState.value.copyWith(
@@ -26,12 +28,9 @@ class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
     final isPlaying = playerState.playing;
     playbackState.add(playbackState.value.copyWith(
       controls: [
-        MediaControl.rewind,
         MediaControl.skipToPrevious,
         if (isPlaying) MediaControl.pause else MediaControl.play,
         MediaControl.skipToNext,
-        MediaControl.stop,
-        MediaControl.fastForward,
       ],
       systemActions: const {
         MediaAction.seek,
@@ -58,10 +57,18 @@ class AudioPlayerHandler extends BaseAudioHandler with SeekHandler {
   Future<void> stop() => _audioPlayer.stop();
   @override
   Future<void> seek(Duration position) => _audioPlayer.seek(position);
+  // @override
+  // Future<void> skipToNext() => _audioPlayer.seekToNext();
   @override
-  Future<void> skipToNext() => _audioPlayer.seekToNext();
+  Future<void> skipToPrevious() async {
+    await audioServiceProvider.onTapPrev();
+  }
+
   @override
-  Future<void> skipToPrevious() => _audioPlayer.seekToPrevious();
+  Future<void> skipToNext() async {
+    await audioServiceProvider.onTapNext();
+    // print(audioServiceProvider.playlist.length);
+  }
 
   @override
   Future<void> customAction(String name, [Map<String, dynamic>? extras]) async {

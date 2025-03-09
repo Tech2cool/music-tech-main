@@ -86,7 +86,16 @@ class MyPlaylistPage extends StatelessWidget {
                 );
               },
             ),
-          ],
+          ] else
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: const Text(
+                  "Checkout some Playlist or songs, it will be added here...",
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
         ],
       ),
     );

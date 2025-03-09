@@ -6,6 +6,7 @@ import 'package:music_tech/core/models/search_model.dart';
 import 'package:music_tech/core/provider/audio_service_provider.dart';
 import 'package:music_tech/core/services/api_service.dart';
 import 'package:music_tech/core/utils/helper.dart';
+import 'package:music_tech/pages/album_info_page.dart';
 import 'package:music_tech/pages/artist_info_page.dart';
 import 'package:music_tech/pages/music_player_page.dart';
 import 'package:music_tech/pages/playlist_info_page.dart';
@@ -24,6 +25,7 @@ class _SearchPageState extends State<SearchPage> {
   Timer? _debounce;
   String? selectedFilter = "ALL";
   bool isLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -38,7 +40,7 @@ class _SearchPageState extends State<SearchPage> {
 
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 300), () {
+    _debounce = Timer(const Duration(milliseconds: 500), () {
       final audioServiceProvider = Provider.of<AudioServiceProvider>(
         context,
         listen: false,
@@ -203,7 +205,7 @@ class _SearchPageState extends State<SearchPage> {
                         children: [
                           Flexible(
                             child: Text(
-                              song.name,
+                              song.name ?? "NA",
                               maxLines: 2,
                               style: const TextStyle(
                                 fontSize: 12,
@@ -256,7 +258,18 @@ class _SearchPageState extends State<SearchPage> {
                               ),
                             ),
                           );
+                        } else if (song.type == "ALBUM") {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => AlbumInfoPage(
+                                music: song,
+                              ),
+                            ),
+                          );
                         } else {
+                          audioServiceProvider.playlist = searchResult;
+                          audioServiceProvider.currentIndex = index;
                           Navigator.push(
                             context,
                             MaterialPageRoute(

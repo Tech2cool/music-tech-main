@@ -3,7 +3,9 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:music_tech/core/models/search_model.dart';
 import 'package:music_tech/core/provider/audio_service_provider.dart';
+import 'package:music_tech/pages/artist_info_page.dart';
 import 'package:music_tech/pages/music_player_page.dart';
+import 'package:music_tech/pages/playlist_info_page.dart';
 import 'package:provider/provider.dart';
 
 class AlbumInfoPage extends StatefulWidget {
@@ -31,7 +33,7 @@ class _AlbumInfoPageState extends State<AlbumInfoPage> {
       setState(() {
         isLoading = true;
       });
-      await audioServiceProvider.getPlayListByid(widget.music);
+      await audioServiceProvider.getAlbumById(widget.music);
     } catch (e) {
       //
     } finally {
@@ -44,12 +46,12 @@ class _AlbumInfoPageState extends State<AlbumInfoPage> {
   @override
   Widget build(BuildContext context) {
     final audioServiceProvider = Provider.of<AudioServiceProvider>(context);
-    final playlist = audioServiceProvider.playlist;
+    final playlist = audioServiceProvider.currentAlbumInfo?.songs ?? [];
     return Stack(
       children: [
         Scaffold(
           appBar: AppBar(
-            title: const Text("Playlist"),
+            title: const Text("Album"),
           ),
           body: ListView(
             children: [
@@ -75,7 +77,7 @@ class _AlbumInfoPageState extends State<AlbumInfoPage> {
               ],
               const SizedBox(height: 16),
               Text(
-                widget.music.name,
+                widget.music.name ?? "NA",
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 18,
@@ -121,7 +123,7 @@ class _AlbumInfoPageState extends State<AlbumInfoPage> {
                         horizontal: 15,
                       ),
                       title: Text(
-                        song.name,
+                        song.name ?? "NA",
                         maxLines: 2,
                         style: const TextStyle(
                           fontSize: 12,
@@ -153,12 +155,33 @@ class _AlbumInfoPageState extends State<AlbumInfoPage> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
+                              builder: (context) => PlayListInfoPage(
+                                music: song,
+                              ),
+                            ),
+                          );
+                        } else if (song.type == "ARTIST") {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ArtistInfoPage(
+                                music: song,
+                              ),
+                            ),
+                          );
+                        } else if (song.type == "ALBUM") {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
                               builder: (context) => AlbumInfoPage(
                                 music: song,
                               ),
                             ),
                           );
                         } else {
+                          audioServiceProvider.playlist = playlist;
+                          audioServiceProvider.currentIndex = index;
+
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -174,7 +197,7 @@ class _AlbumInfoPageState extends State<AlbumInfoPage> {
                 )
               else ...[
                 const Text(
-                  "Playlist is Empty",
+                  "Album is Empty",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 20,

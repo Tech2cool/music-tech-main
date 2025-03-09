@@ -6,7 +6,7 @@ class SearchModel {
   final String? artistId;
   final String? albumId;
   final String? playlistId;
-  final String name;
+  final String? name;
   final Artist? artist;
   final Album? album;
   final int? duration;
@@ -18,6 +18,7 @@ class SearchModel {
   final List<SearchModel> topVideos;
   final List<SearchModel> featuredOn;
   final List<SearchModel> similarArtists;
+  final List<SearchModel> songs;
 
   SearchModel({
     required this.type,
@@ -37,6 +38,7 @@ class SearchModel {
     this.topVideos = const [],
     this.featuredOn = const [],
     this.similarArtists = const [],
+    this.songs = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -58,6 +60,7 @@ class SearchModel {
       'topVideos': topVideos.map((x) => x.toMap()).toList(),
       'featuredOn': featuredOn.map((x) => x.toMap()).toList(),
       'similarArtists': similarArtists.map((x) => x.toMap()).toList(),
+      'songs': songs.map((x) => x.toMap()).toList(),
     };
   }
 
@@ -98,6 +101,10 @@ class SearchModel {
               .toList() ??
           [],
       similarArtists: (map["similarArtists"] as List<dynamic>?)
+              ?.map((ele) => SearchModel.fromMap(ele as Map<String, dynamic>))
+              .toList() ??
+          [],
+      songs: (map["songs"] as List<dynamic>?)
               ?.map((ele) => SearchModel.fromMap(ele as Map<String, dynamic>))
               .toList() ??
           [],

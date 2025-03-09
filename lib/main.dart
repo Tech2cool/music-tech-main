@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:audio_service/audio_service.dart';
 import 'package:music_tech/core/provider/audio_service_provider.dart';
-import 'package:music_tech/pages/audio_player_screen.dart';
 import 'package:music_tech/wrapper/home_wrapper.dart';
 import 'package:provider/provider.dart';
 
@@ -12,7 +10,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final audioServiceProvider = AudioServiceProvider();
-  await audioServiceProvider.init();
+  await audioServiceProvider.init(audioServiceProvider);
 
   runApp(
     MultiProvider(
